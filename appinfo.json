@@ -1,0 +1,9 @@
+{
+	"id": "com.mijoro.jotter",
+	"version": "1.0.1",
+	"vendor": "Mijoro",
+	"type": "web",
+	"main": "index.html",
+	"title": "Jotter",
+	"icon": "icon64.png"
+}
