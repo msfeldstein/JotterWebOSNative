@@ -51,6 +51,9 @@ JotAssistant.prototype.emailBlur = function(event) {
 
 JotAssistant.prototype.jotKeyDown = function(event) {
 	if(event.keyCode == "13" && event.target.value) {
+		if(){
+			this.jotter.closeAutomaticly = true;
+		}
 		this.jotter.jot(event.target.value, this.serverResponse.bind(this))
 		this.setSendingState(true);
 		return false;

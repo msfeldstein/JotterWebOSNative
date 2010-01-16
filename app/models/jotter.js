@@ -6,7 +6,7 @@ var Jotter = Class.create({
 			this.email = this.cookieValue.email;
 			this.message = this.cookieValue.message;
 		} else {
-			this.cookieValue = {};
+			this.cookieValue = { counter: 0 };
 		}
 	},
 	
@@ -40,7 +40,11 @@ var Jotter = Class.create({
 		})
 	},
 	onServerResponse:function(callback, resp){
-		console.log("RESP IS " + Object.toJSON(resp))
+		console.log("RESP IS " + Object.toJSON(resp));
+		
+		this.cookieValue.counter += 1;
+		this.cookie.put(this.cookieValue);
+			
 		callback(resp.responseText == "1");
 	}
 })
