@@ -85,7 +85,7 @@ JotAssistant.prototype.serverResponse = function(success) {
 		this.controller.modelChanged(this.jotModel);
 		message = $L("Message Sent Successfully") ;
 		title = $L("Success!");
-		choices = [{label:$L("OK")}, {label:$L("Close"), value:"close"}];
+		choices = [{label:$L("Jot Again")}, {label:$L("Close"), value:"close"}];
 		
 	} else {
 		message = $L("There was an error sending the message.");
