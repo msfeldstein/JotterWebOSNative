@@ -23,6 +23,16 @@ JotAssistant.prototype.activate = function() {
 		this.controller.get("JotField").mojo.focus();
 	} else {
 		this.controller.get("EmailField").mojo.focus();
+		
+		//	Check for first use
+		var firstUseCookie = new Mojo.Model.Cookie('not_first_use');
+		var firstUse =  firstUseCookie.get() || {};
+		if( !firstUse.hasBeenShown ) {
+			//	If first use, interrupt with firstUse scene. This lets the
+			//	Jot Scene load faster in cases where it's not first use :)
+			firstUseCookie.put({hasBeenShown: true});
+			this.controller.stageController.pushScene('firstUse');
+		}
 	}
 	
 	var inputField = this.controller.select("#JotField textarea")[0];
@@ -30,18 +40,6 @@ JotAssistant.prototype.activate = function() {
 	
 	this.windowResized();
 	this.controller.listen(this.controller.window, "resize", this.windowResized.bind(this));
-	
-	
-	//	Check for first use
-	var firstUseCookie = new Mojo.Model.Cookie('not_first_use');
-	var firstUse =  firstUseCookie.get() || {};
-	
-	if( !firstUse.hasBeenShown ) {
-		//	If first use, interrupt with firstUse scene. This lets the
-		//	Jot Scene load faster in cases where it's not first use :)
-		firstUseCookie.put({hasBeenShown: true});
-		this.controller.stageController.pushScene('firstUse');
-	}
 }
 
 JotAssistant.prototype.deactivate = function(){
