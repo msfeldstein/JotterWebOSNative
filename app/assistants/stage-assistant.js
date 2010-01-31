@@ -2,5 +2,7 @@ function StageAssistant() {
 }
 
 StageAssistant.prototype.setup = function() {
-	this.controller.pushScene("jot");
+	
+	this.controller.pushScene('jot');
+
 }

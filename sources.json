@@ -5,5 +5,9 @@
         "source": "app/assistants/jot-assistant.js"
     }, {
 		"source": "app/models/jotter.js"
-	}
+	},
+  {
+    "scenes": "firstUse",
+    "source": "app/assistants/firstUse-assistant.js"
+  }
 ]
