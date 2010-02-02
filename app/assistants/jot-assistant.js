@@ -51,6 +51,9 @@ JotAssistant.prototype.emailBlur = function(event) {
 
 JotAssistant.prototype.jotKeyDown = function(event) {
 	if(event.keyCode == "13" && event.target.value) {
+		if(){
+			this.jotter.closeAutomaticly = true;
+		}
 		this.jotter.jot(event.target.value, this.serverResponse.bind(this))
 		this.setSendingState(true);
 		return false;
@@ -85,7 +88,7 @@ JotAssistant.prototype.serverResponse = function(success) {
 		this.controller.modelChanged(this.jotModel);
 		message = $L("Message Sent Successfully") ;
 		title = $L("Success!");
-		choices = [{label:$L("OK")}, {label:$L("Close"), value:"close"}];
+		choices = [{label:$L("Jot Again")}, {label:$L("Close"), value:"close"}];
 		
 	} else {
 		message = $L("There was an error sending the message.");
