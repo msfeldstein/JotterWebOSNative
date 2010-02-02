@@ -26,21 +26,22 @@ var Jotter = Class.create({
 	getMessage:function(){
 		return this.message;
 	},
-	urlTemplate:"http://mijoro.com/jot-service.php?to=#{to}&subject=#{message}&body=This message was sent by Mijoro Jotter (http://mijoro.com/jotter).&key=#{key}",
+	urlTemplate:"http://mijoro.com/jot-service2.php?to=#{to}&subject=#{message}&body=This message was sent by Mijoro Jotter (http://mijoro.com/jotter).&key=#{key}",
+	url:"http://jotterapi.appspot.com",
 	jot:function(value, callback){
 		var key = MD5(this.email + value + "MeezesHash");
-		var url = this.urlTemplate.interpolate({
-			to:this.email,
-			message:value,
-			key:key
-		});
-		console.log(url);
+		var url = this.url;
 		new Ajax.Request(url, {
+		    method: 'post',
+		    parameters: {
+		      to:this.email,
+		      message:value,
+		      key:key  
+		    },
 			onComplete:this.onServerResponse.curry(callback)
-		})
+		});
 	},
 	onServerResponse:function(callback, resp){
-		console.log("RESP IS " + Object.toJSON(resp))
 		callback(resp.responseText == "1");
 	}
 })
