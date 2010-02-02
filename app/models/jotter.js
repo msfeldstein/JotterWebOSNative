@@ -26,7 +26,6 @@ var Jotter = Class.create({
 	getMessage:function(){
 		return this.message;
 	},
-	urlTemplate:"http://mijoro.com/jot-service2.php?to=#{to}&subject=#{message}&body=This message was sent by Mijoro Jotter (http://mijoro.com/jotter).&key=#{key}",
 	url:"http://jotterapi.appspot.com",
 	jot:function(value, callback){
 		var key = MD5(this.email + value + "MeezesHash");
