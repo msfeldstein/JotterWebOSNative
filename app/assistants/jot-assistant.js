@@ -2,13 +2,13 @@ function JotAssistant() {
 }
 
 JotAssistant.prototype.setup = function() {
-	this.jotter = new Jotter();
+	this.jotter = Jotter.instance;
 	var email = this.jotter.getEmail();
 	var message = this.jotter.getMessage();
 	this.controller.setupWidget("EmailField", {modelProperty:"address", hintText:$L("Email Address...")}, 
 		this.emailModel = {address:email});
 	
-	this.controller.setupWidget("JotField", {modelProperty:"message", enterSubmits:true, multiline:true, hintText:$L("Message...")}, 
+	this.controller.setupWidget("JotField", {modelProperty:"message", changeOnKeyPress:true, multiline:true, hintText:$L("Message...")}, 
 		this.jotModel = {message:message});
 		
 	this.controller.listen("EmailField", "DOMFocusOut", this.emailBlur.bind(this));
@@ -23,26 +23,46 @@ JotAssistant.prototype.setup = function() {
 	        items: [
 	            Mojo.Menu.editItem,
 	            {label: "Help", command:Mojo.Menu.helpCmd},
-	            {label: "More Mijoro Apps...", command: 'do-mijoro'}
+	            {label: "Logs", command:'previous-jots'},
+	            {label: "More Mijoro Apps...", command: 'do-mijoro'},
+	            {label: "Preferences...", command:'prefs'}
 	        ]
 	    })
+        this.controller.setupWidget(Mojo.Menu.commandMenu,
+    	    {},
+    	    this.commandMenu = {
+    	        visible:true,
+    	        items:[
+                    {label: "Photo", command:'photo'}
+                ]
+    	    }
+    	);
+
+	    this.jotter.getPreferences(this.renderPreferences.bind(this));
+
+}
+
+JotAssistant.prototype.renderPreferences = function(prefs) {
+    console.log("Pref called back was " + Object.toJSON(prefs))
+    this.multiline = prefs.multiline;
+    var items = [
+        {label: "Photo", command:'photo'}
+    ];
+    if(prefs.multiline) {
+        items.push({label: "Send", command: 'send-jot'});
+    }
+    console.log("Setting command Menu with "+ Object.toJSON(items))
+    this.commandMenu.items = items;
+    this.controller.modelChanged(this.commandMenu);
 }
 
 JotAssistant.prototype.activate = function() {
 	if(this.jotter.getEmail()) {
 		this.controller.get("JotField").mojo.focus();
+		this.checkNewVersion();
 	} else {
 		this.controller.get("EmailField").mojo.focus();
-		
-		//	Check for first use
-		var firstUseCookie = new Mojo.Model.Cookie('not_first_use');
-		var firstUse = firstUseCookie.get() || {};
-		if( !firstUse.hasBeenShown ) {
-			//	If first use, interrupt with firstUse scene. This lets the
-			//	Jot Scene load faster in cases where it's not first use :)
-			firstUseCookie.put({hasBeenShown: true});
-			this.controller.stageController.pushScene('firstUse', {mode:'first-use'});
-		}
+		this.checkFirstUse();
 	}
 	
 	var inputField = this.controller.select("#JotField textarea")[0];
@@ -50,6 +70,23 @@ JotAssistant.prototype.activate = function() {
 	
 	this.windowResized();
 	this.controller.listen(this.controller.window, "resize", this.windowResized.bind(this));
+}
+
+JotAssistant.prototype.checkFirstUse = function() {
+	if( this.jotter.isFirstUse() ) {
+		this.controller.stageController.pushScene('firstUse', {mode:'first-use'});
+		this.jotter.clearFirstUse();
+	} else {
+	    this.checkNewVersion();
+	}
+}
+
+JotAssistant.prototype.checkNewVersion = function() {
+    console.log("Checking new version")
+	if( this.jotter.isNewVersion() ) {
+		this.controller.stageController.pushScene('whatsNew');
+		this.jotter.setUpdatedVersion();
+	}
 }
 
 JotAssistant.prototype.deactivate = function(){
@@ -70,17 +107,17 @@ JotAssistant.prototype.emailBlur = function(event) {
 }
 
 JotAssistant.prototype.jotKeyDown = function(event) {
+	if(this.multiline) return;
 	if(event.keyCode == "13" && event.target.value) {
-	/*
-		if(){
-			this.jotter.closeAutomaticly = true;
-		}
-	*/	
-		this.jotter.jot(event.target.value, this.serverResponse.bind(this))
-		this.setSendingState(true);
+	    this.jot();
 		return false;
 	}
 	return true;
+}
+
+JotAssistant.prototype.jot = function() {
+ 	this.jotter.jot(this.jotModel.message, this.serverResponse.bind(this))
+	this.setSendingState(true);   
 }
 
 JotAssistant.prototype.focusJotField = function() {
@@ -125,9 +162,6 @@ JotAssistant.prototype.serverResponse = function(success) {
 			} else {
 				this.focusJotField.bind(this).delay(.75);
 			}
-			// if(value == "retry") {
-			// 	this.jotter.jot.bind(this,this.jotModel.value).defer();
-			// }
 		}.bind(this),
 		title:title,
 	    message: message,
@@ -136,9 +170,15 @@ JotAssistant.prototype.serverResponse = function(success) {
 	});
 }
 
+JotAssistant.prototype.sendPhoto = function() {
+    
+}
+
 JotAssistant.prototype.handleCommand = function(event) {
     if (event.type == Mojo.Event.commandEnable) {
+        console.log("CMD: " + event.command);
         switch(event.command) {
+            
             case Mojo.Menu.helpCmd:
                 event.preventDefault();
         }
@@ -147,6 +187,9 @@ JotAssistant.prototype.handleCommand = function(event) {
         switch(event.command) {
             case Mojo.Menu.helpCmd:
                 this.controller.stageController.pushScene('firstUse', {mode:'help'})
+                break;
+            case 'prefs':
+                this.controller.stageController.pushScene('preferences');
                 break;
             case 'do-mijoro':
                 this.controller.serviceRequest("palm://com.palm.applicationManager", {
@@ -159,6 +202,15 @@ JotAssistant.prototype.handleCommand = function(event) {
                    }
                  });
                  break;
+            case 'send-jot':
+                this.jot()
+                break;
+            case 'previous-jots':
+                this.controller.stageController.pushScene("logs");
+                break;
+            case 'photo':
+                this.sendPhoto();
+                break;
         }
     }
 }

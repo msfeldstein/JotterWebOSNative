@@ -1,3 +1,5 @@
+VERSION = 1;
+
 var Jotter = Class.create({
 	initialize:function(){
 		this.cookie = new Mojo.Model.Cookie("jotterCookie");
@@ -6,8 +8,50 @@ var Jotter = Class.create({
 			this.email = this.cookieValue.email;
 			this.message = this.cookieValue.message;
 		} else {
-			this.cookieValue = {};
+			this.cookieValue = {version:0, prefs:{multiline:false}};
 		}
+		this.preferences = this.cookieValue.prefs || {multiline:false};
+		this.preferenceObservers = [];
+	},
+	
+	isFirstUse:function() {
+	    return this.cookieValue.version == 0;
+	},
+	
+	clearFirstUse:function() {
+	    this.cookieValue.version = VERSION;
+	    this.cookie.put(this.cookieValue);
+	},
+	
+	isNewVersion:function() {
+	    return (!this.cookieValue.version || this.cookieValue.version < VERSION);
+	},
+	
+	setUpdatedVersion:function() {
+	    this.cookieValue.version = VERSION;
+	    this.cookie.put(this.cookieValue);
+	},
+	
+	setMultiline:function(val) {
+	    this.preferences.multiline = val;
+	    this.savePreferences();
+	},
+	
+	savePreferences:function() {
+	    this.cookieValue.prefs = this.preferences; 
+	    var prefs = this.preferences;
+	    this.cookie.put(this.cookieValue);
+	    this.preferenceObservers.each(function(cb) {
+	        cb(prefs);
+	    })
+	},
+	
+	getPreferences:function(callback) {
+	    if(callback) {
+	        this.preferenceObservers.push(callback);
+	        callback(this.preferences);
+	    }
+	    return this.preferences;
 	},
 	
 	setEmail:function(email){
@@ -28,22 +72,62 @@ var Jotter = Class.create({
 	},
 	url:"http://jotterapi.appspot.com",
 	jot:function(value, callback){
-		var key = MD5(this.email + value + "MeezesHash");
+	    var subject = value;
+	    var body = "";
+	    var firstLinebreak = value.indexOf("\n");
+	    if (firstLinebreak > 0) {
+	        subject = value.substring(0, firstLinebreak);
+	        body = value.substring(firstLinebreak+1);
+	    }
+		var key = MD5(this.email + subject + "MeezesHash");
 		var url = this.url;
 		new Ajax.Request(url, {
 		    method: 'post',
 		    parameters: {
 		      to:this.email,
-		      message:value,
-		      key:key  
+		      message:subject,
+		      key:key,
+		      body:body
 		    },
-			onComplete:this.onServerResponse.curry(callback)
+			onComplete:this.onServerResponse.bind(this, callback, value)
 		});
 	},
-	onServerResponse:function(callback, resp){
+	onServerResponse:function(callback, value, resp){
 		callback(resp.responseText == "1");
+		this.save(value);
+	},
+	
+	save:function(value) { 
+	    var log = this.getLog();
+	    var date = Mojo.Format.formatDate(new Date(), 'medium');
+	    log.unshift({subject:value, date:date});
+	    if (log.length > 20) {
+	        log.pop();
+	    }
+	    this.logCookie.put(log);
+	},
+	
+	getLog:function() {
+	    if(!this.log) {
+	        this.logCookie = new Mojo.Model.Cookie("jotter-logs");
+	        this.log = this.logCookie.get();
+	    }
+	    return this.log;	    
+	},
+	
+	deleteElement:function(date) {
+	    var log = this.getLog();
+	    for (var i = 0; i < log.length; ++i) {
+	        if (log[i].date == date) {
+	            log.splice(i,1);
+	            break;
+	        }
+	    }
+	    this.logCookie.put(log);
 	}
 })
+Jotter.VERSION = 1;
+Jotter.instance = new Jotter();
 
 /**
 *
